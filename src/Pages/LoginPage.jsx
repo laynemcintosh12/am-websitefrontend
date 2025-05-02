@@ -118,14 +118,6 @@ const LoginPage = () => {
             >
               Forgot password?
             </a>
-            <a
-              href="/signup"
-              className={`hover:underline transition-colors duration-300 ${
-                isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
-              }`}
-            >
-              Sign up
-            </a>
           </div>
 
           <button

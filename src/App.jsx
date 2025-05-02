@@ -21,14 +21,18 @@ import AdminAccounting from './Pages/AdminAccounting';
 import Financials from './Pages/Financials';
 import { DarkModeProvider } from './contexts/DarkModeContext';
 import ScrollToTop from './Components/Everwhere/ScrollToTop';
+import ProtectedRoute from './Components/Common/ProtectedRoute';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userPermissions, setUserPermissions] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('user');
-    if (token) {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
       setIsLoggedIn(true);
+      setUserPermissions(user.permissions);
     }
   }, []);
 
@@ -41,13 +45,35 @@ function App() {
             <>
               <Header />
               <Routes>
-                <Route path="/dashboard" element={<Dashboard />} />
+                {/* Regular authenticated routes */}
+                <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
+                <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
+                <Route path="/financials" element={<ProtectedRoute element={<Financials />} />} />
+
+                {/* Admin routes */}
+                <Route 
+                  path="/admin-overview" 
+                  element={<ProtectedRoute 
+                    element={<AdminOverview />} 
+                    requiredPermission="Admin" 
+                  />} 
+                />
+                <Route 
+                  path="/admin-settings" 
+                  element={<ProtectedRoute 
+                    element={<AdminSettings />} 
+                    requiredPermission="Admin" 
+                  />} 
+                />
+                <Route 
+                  path="/admin-accounting" 
+                  element={<ProtectedRoute 
+                    element={<AdminAccounting />} 
+                    requiredPermission="Admin" 
+                  />} 
+                />
+
                 <Route path="*" element={<Navigate to="/dashboard" />} />
-                <Route path='/profile' element={<Profile />} />
-                <Route path='/financials' element={<Financials />} />
-                <Route path='/admin-overview' element={<AdminOverview />} />
-                <Route path='/admin-settings' element={<AdminSettings />} />
-                <Route path='/admin-accounting' element={<AdminAccounting />} />
               </Routes>
             </>
           ) : (
