@@ -12,7 +12,7 @@ const BalanceMetrics = ({ totalEarned, potentialCommission, totalPaid, currentBa
       
       <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-4 flex flex-col items-center justify-center transition-colors duration-300`}>
         <span className={`text-2xl md:text-3xl font-bold ${isDarkMode ? 'text-amber-300' : 'text-amber-600'} mb-2`}>
-          {formatCurrency(potentialCommission)}
+          {formatCurrency(potentialCommission)} {/* This will now only show sum of positive amounts */}
         </span>
         <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Potential Commission</p>
       </div>

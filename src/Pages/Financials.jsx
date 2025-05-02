@@ -109,7 +109,10 @@ const Financials = () => {
   const totalEarned = finalizedCustomers.reduce((sum, customer) => sum + customer.commission, 0);
   const totalPaid = paymentHistory.reduce((sum, payment) => sum + payment.amount, 0);
   const currentBalance = totalEarned - totalPaid;
-  const potentialCommission = activeCustomers.reduce((sum, customer) => sum + customer.potentialCommission, 0);
+  const potentialCommission = activeCustomers.reduce((sum, customer) => {
+    // Only add to sum if potentialCommission is positive
+    return sum + (customer.potentialCommission > 0 ? customer.potentialCommission : 0);
+  }, 0);
 
   // Format currency
   const formatCurrency = (amount) => {
