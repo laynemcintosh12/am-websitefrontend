@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import EditUser from './EditUser';
 import AddUserForm from './AddUserForm';
 
@@ -54,6 +54,13 @@ const UserList = ({ users, onAddUser, onUpdateUser, onDeleteUser, isDarkMode }) 
   const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddUserForm, setShowAddUserForm] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const formatCurrency = (amount) => {
     return Number(amount).toLocaleString('en-US', {
@@ -124,6 +131,66 @@ const UserList = ({ users, onAddUser, onUpdateUser, onDeleteUser, isDarkMode }) 
     user.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const renderMobileCard = (user) => (
+    <div key={user.id} className={`mb-4 p-4 rounded-lg shadow ${isDarkMode ? 'bg-gray-700' : 'bg-white'}`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center">
+          <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+            isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
+          }`}>
+            <i className={`fas fa-user ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}></i>
+          </div>
+          <div className="ml-3">
+            <div className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+              {user.name}
+            </div>
+            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              {user.email}
+            </div>
+          </div>
+        </div>
+        <div className="flex space-x-3">
+          <button onClick={() => handleEditClick(user)} className="text-blue-500">
+            <i className="fas fa-edit"></i>
+          </button>
+          <button onClick={() => handleDelete(user.id)} className="text-red-500">
+            <i className="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mt-3">
+        <div>
+          <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Role</div>
+          <div className={`mt-1 text-sm ${getRoleStyle(user.role, isDarkMode)} inline-block px-2 py-1 rounded-full`}>
+            {user.role}
+          </div>
+        </div>
+
+        <div>
+          <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Phone</div>
+          <div className={`mt-1 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            {formatPhoneNumber(user.phone)}
+          </div>
+        </div>
+
+        <div>
+          <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Yearly Goal</div>
+          <div className={`mt-1 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            {formatCurrency(user.yearly_goal)}
+          </div>
+        </div>
+
+        <div>
+          <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Hire Date</div>
+          <div className={`mt-1 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            {user.hire_date ? new Date(user.hire_date).toLocaleDateString() : 'Not set'}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div>
       {isEditing ? (
@@ -131,20 +198,21 @@ const UserList = ({ users, onAddUser, onUpdateUser, onDeleteUser, isDarkMode }) 
           user={selectedUser}
           onComplete={handleEditComplete}
           isDarkMode={isDarkMode}
+          isMobile={isMobile}
         />
       ) : (
         <div className="space-y-6">
           {/* Search and Add Controls */}
-          <div className="flex justify-between items-center">
-            <div className="relative w-64">
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
+            <div className="relative flex-1">
               <input
                 type="text"
                 placeholder="Search users..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 rounded-lg border transition-colors ${
+                className={`w-full pl-10 pr-4 py-3 sm:py-2 rounded-lg border text-base sm:text-sm ${
                   isDarkMode 
-                    ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
                     : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                 }`}
               />
@@ -154,138 +222,144 @@ const UserList = ({ users, onAddUser, onUpdateUser, onDeleteUser, isDarkMode }) 
             </div>
             <button
               onClick={() => setShowAddUserForm(true)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
+              className={`px-4 py-3 sm:py-2 rounded-lg transition-colors whitespace-nowrap ${
                 isDarkMode
                   ? 'bg-green-600 hover:bg-green-700 text-white'
                   : 'bg-green-500 hover:bg-green-600 text-white'
               }`}
             >
               <i className="fas fa-plus mr-2"></i>
-              Add New User
+              {isMobile ? 'Add' : 'Add New User'}
             </button>
           </div>
 
-          {/* Users Table */}
-          <div className={`overflow-x-auto rounded-lg shadow-lg ${
-            isDarkMode ? 'bg-gray-800' : 'bg-white'
-          }`}>
-            <table className={`min-w-full divide-y ${
-              isDarkMode ? 'divide-gray-700' : 'divide-gray-200'
+          {/* Users List */}
+          {isMobile ? (
+            <div className="space-y-4">
+              {filteredUsers.map(renderMobileCard)}
+            </div>
+          ) : (
+            <div className={`overflow-x-auto rounded-lg shadow-lg ${
+              isDarkMode ? 'bg-gray-800' : 'bg-white'
             }`}>
-              <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}>
-                <tr>
-                  {['User Info', 'Role & Team', 'Contact', 'Goals & Dates', 'Actions'].map((header) => (
-                    <th key={header} className={`px-6 py-3 text-left text-xs font-medium tracking-wider ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-500'
-                    } uppercase`}>
-                      {header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className={`divide-y ${
+              <table className={`min-w-full divide-y ${
                 isDarkMode ? 'divide-gray-700' : 'divide-gray-200'
               }`}>
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className={`${
-                    isDarkMode 
-                      ? 'hover:bg-gray-700 text-gray-200' 
-                      : 'hover:bg-gray-50 text-gray-900'
-                  }`}>
-                    {/* User Info Cell */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                          isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
-                        }`}>
-                          <i className={`fas fa-user ${
-                            isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                          }`}></i>
-                        </div>
-                        <div className="ml-4">
-                          <div className={`font-medium ${
-                            isDarkMode ? 'text-gray-200' : 'text-gray-900'
-                          }`}>{user.name}</div>
-                          <div className={`text-sm ${
-                            isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                          }`}>{user.permissions}</div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Role & Team Cell */}
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold mb-2 ${
-                        getRoleStyle(user.role, isDarkMode)
-                      }`}>
-                        {user.role}
-                      </span>
-                      <div className={`text-sm ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
-                        {user.team ? (
-                          <span className="flex items-center">
-                            <i className="fas fa-users mr-1"></i>
-                            {user.team.name}
-                          </span>
-                        ) : 'No Team'}
-                      </div>
-                    </td>
-
-                    {/* Contact Info */}
-                    <td className="px-6 py-4">
-                      <div className={`text-sm ${
-                        isDarkMode ? 'text-gray-200' : 'text-gray-900'
-                      }`}>{user.email}</div>
-                      <div className={`text-sm ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                      }`}>{formatPhoneNumber(user.phone)}</div>
-                    </td>
-
-                    {/* Goals & Dates */}
-                    <td className="px-6 py-4">
-                      <div className={`text-sm ${
-                        isDarkMode ? 'text-gray-200' : 'text-gray-900'
-                      }`}>
-                        Goal: {formatCurrency(user.yearly_goal || 0)}
-                      </div>
-                      <div className={`text-sm ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
-                        Hired: {user.hire_date ? new Date(user.hire_date).toLocaleDateString() : 'Not set'}
-                      </div>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-6 py-4">
-                      <div className="flex space-x-3">
-                        <button
-                          onClick={() => handleEditClick(user)}
-                          className={`transition-colors ${
-                            isDarkMode 
-                              ? 'text-blue-400 hover:text-blue-300' 
-                              : 'text-blue-600 hover:text-blue-800'
-                          }`}
-                        >
-                          <i className="fas fa-edit"></i>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user.id)}
-                          className={`transition-colors ${
-                            isDarkMode 
-                              ? 'text-red-400 hover:text-red-300' 
-                              : 'text-red-600 hover:text-red-800'
-                          }`}
-                        >
-                          <i className="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    </td>
+                <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}>
+                  <tr>
+                    {['User Info', 'Role & Team', 'Contact', 'Goals & Dates', 'Actions'].map((header) => (
+                      <th key={header} className={`px-6 py-3 text-left text-xs font-medium tracking-wider ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-500'
+                      } uppercase`}>
+                        {header}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className={`divide-y ${
+                  isDarkMode ? 'divide-gray-700' : 'divide-gray-200'
+                }`}>
+                  {filteredUsers.map((user) => (
+                    <tr key={user.id} className={`${
+                      isDarkMode 
+                        ? 'hover:bg-gray-700 text-gray-200' 
+                        : 'hover:bg-gray-50 text-gray-900'
+                    }`}>
+                      {/* User Info Cell */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                            isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
+                          }`}>
+                            <i className={`fas fa-user ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                            }`}></i>
+                          </div>
+                          <div className="ml-4">
+                            <div className={`font-medium ${
+                              isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                            }`}>{user.name}</div>
+                            <div className={`text-sm ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                            }`}>{user.permissions}</div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Role & Team Cell */}
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold mb-2 ${
+                          getRoleStyle(user.role, isDarkMode)
+                        }`}>
+                          {user.role}
+                        </span>
+                        <div className={`text-sm ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                          {user.team ? (
+                            <span className="flex items-center">
+                              <i className="fas fa-users mr-1"></i>
+                              {user.team.name}
+                            </span>
+                          ) : 'No Team'}
+                        </div>
+                      </td>
+
+                      {/* Contact Info */}
+                      <td className="px-6 py-4">
+                        <div className={`text-sm ${
+                          isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                        }`}>{user.email}</div>
+                        <div className={`text-sm ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>{formatPhoneNumber(user.phone)}</div>
+                      </td>
+
+                      {/* Goals & Dates */}
+                      <td className="px-6 py-4">
+                        <div className={`text-sm ${
+                          isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                        }`}>
+                          Goal: {formatCurrency(user.yearly_goal || 0)}
+                        </div>
+                        <div className={`text-sm ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                          Hired: {user.hire_date ? new Date(user.hire_date).toLocaleDateString() : 'Not set'}
+                        </div>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-6 py-4">
+                        <div className="flex space-x-3">
+                          <button
+                            onClick={() => handleEditClick(user)}
+                            className={`transition-colors ${
+                              isDarkMode 
+                                ? 'text-blue-400 hover:text-blue-300' 
+                                : 'text-blue-600 hover:text-blue-800'
+                            }`}
+                          >
+                            <i className="fas fa-edit"></i>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(user.id)}
+                            className={`transition-colors ${
+                              isDarkMode 
+                                ? 'text-red-400 hover:text-red-300' 
+                                : 'text-red-600 hover:text-red-800'
+                            }`}
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Add User Modal */}
           {showAddUserForm && (

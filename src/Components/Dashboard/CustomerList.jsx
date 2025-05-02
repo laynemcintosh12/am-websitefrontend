@@ -15,55 +15,34 @@ const CustomerList = ({ userData, customerData }) => {
   useEffect(() => {
     const fetchCommissions = async () => {
       try {
-        console.log('Starting fetchCommissions with:', {
-          customersCount: customerData.allCustomers.length,
-          userId: userData.id
-        });
 
         // Sort customers by status first
         const finalizedCustomers = customerData.allCustomers.filter(c => c.status === 'Finalized');
         const nonFinalizedCustomers = customerData.allCustomers.filter(c => c.status !== 'Finalized');
 
-        console.log('Sorted customers:', {
-          finalizedCount: finalizedCustomers.length,
-          nonFinalizedCount: nonFinalizedCustomers.length
-        });
-
         // Get all earned commissions for finalized customers
         const earnedCommissionsMap = {};
         if (finalizedCustomers.length > 0) {
           const allCommissions = await Api.getAllCommissions();
-          console.log('All commissions received:', allCommissions);
 
           // Filter commissions for current user and displayed customers
           const relevantCommissions = allCommissions.filter(commission => 
             commission.user_id === userData.id && 
             finalizedCustomers.some(c => c.id === commission.customer_id)
           );
-
-          console.log('Filtered commissions:', {
-            total: allCommissions.length,
-            relevant: relevantCommissions.length,
-            userId: userData.id
-          });
           
           // Map commissions to customer IDs with number conversion
           relevantCommissions.forEach(commission => {
             earnedCommissionsMap[commission.customer_id] = parseFloat(commission.commission_amount) || 0;
           });
-
-          console.log('Earned commissions map:', earnedCommissionsMap);
         }
 
         // Get potential commissions for non-finalized customers
         const potentialCommissionsMap = {};
         if (nonFinalizedCustomers.length > 0) {
-          console.log('Calculating potential commissions for:', nonFinalizedCustomers.length, 'customers');
           
           const nonFinalizedIds = nonFinalizedCustomers.map(c => c.id);
           const potentialResponse = await Api.calculatePotentialCommissions(nonFinalizedIds);
-          
-          console.log('Potential commissions response:', potentialResponse);
           
           // Map potential commissions to customer IDs
           potentialResponse.potentialCommissions.forEach(pc => {
@@ -71,14 +50,7 @@ const CustomerList = ({ userData, customerData }) => {
               potentialCommissionsMap[pc.customerId] = parseFloat(pc.amount) || 0;
             }
           });
-
-          console.log('Potential commissions map:', potentialCommissionsMap);
         }
-
-        console.log('Setting final commission state:', {
-          earned: earnedCommissionsMap,
-          potential: potentialCommissionsMap
-        });
 
         setCommissions({
           earned: earnedCommissionsMap,
@@ -137,36 +109,14 @@ const CustomerList = ({ userData, customerData }) => {
       key: "commission",
       render: (customer) => {
         // First debug log
-        console.log('Starting commission render for customer:', customer.id);
 
         let commissionAmount = 0;
         
-        // Check commission maps
-        console.log('Commission maps state:', {
-          earned: commissions.earned,
-          potential: commissions.potential
-        });
-        
         if (customer.status === 'Finalized') {
           commissionAmount = commissions.earned[customer.id];
-          console.log('Finalized customer commission:', {
-            customerId: customer.id,
-            amount: commissionAmount
-          });
         } else {
           commissionAmount = commissions.potential[customer.id];
-          console.log('Potential customer commission:', {
-            customerId: customer.id,
-            amount: commissionAmount
-          });
         }
-
-        // Final debug log
-        console.log('Final commission amount:', {
-          customerId: customer.id,
-          status: customer.status,
-          amount: commissionAmount
-        });
 
         return (
           <span className={`${

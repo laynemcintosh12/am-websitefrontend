@@ -1,4 +1,5 @@
 import React from 'react';
+import TooltipIcon from '../Common/TooltipIcon';
 
 const StatsCards = ({ companyStats, isDarkMode }) => {
   const formatCurrency = (amount) => {
@@ -103,14 +104,7 @@ const StatsCards = ({ companyStats, isDarkMode }) => {
                 <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   {card.title}
                 </p>
-                {card.tooltip && (
-                  <div className="relative ml-2 group">
-                    <i className="fas fa-info-circle text-gray-400 hover:text-gray-500 cursor-help"></i>
-                    <div className="absolute z-10 w-64 p-2 -mt-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform -translate-x-1/2 left-1/2 ml-6">
-                      {card.tooltip}
-                    </div>
-                  </div>
-                )}
+                {card.tooltip && <TooltipIcon content={card.tooltip} />}
               </div>
               <p className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 {card.value}

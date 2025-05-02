@@ -56,10 +56,12 @@ class Api {
 
   static async getUserPayments() {
     const userData = JSON.parse(localStorage.getItem('user'));
-    if (!userData?.user?.id) {
-      throw new Error('User ID not found');
+    if (!userData?.token) {
+      throw new Error('Authentication token not found');
     }
-    return await this.request("payments", { user_id: userData.user.id });
+    
+    this.token = userData.token;
+    return await this.request("payments");
   }
 
   static async getAllPayments() {

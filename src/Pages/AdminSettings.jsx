@@ -23,7 +23,29 @@ const AdminSettings = () => {
         Api.getAllUsers(),
         Api.getTeams()
       ]);
-      setUsers(usersData);
+
+      // Process users to include their team information
+      const usersWithTeams = usersData.map(user => {
+        let userTeam = null;
+        
+        // Check each team to find where the user belongs
+        teamsData.forEach(team => {
+          if (team.manager_id === user.id) {
+            userTeam = { name: team.team_name, role: 'Manager' };
+          } else if (team.salesman_ids && team.salesman_ids.includes(user.id)) {
+            userTeam = { name: team.team_name, role: 'Salesman' };
+          } else if (team.supplementer_ids && team.supplementer_ids.includes(user.id)) {
+            userTeam = { name: team.team_name, role: 'Supplementer' };
+          }
+        });
+
+        return {
+          ...user,
+          team: userTeam
+        };
+      });
+
+      setUsers(usersWithTeams);
       setTeams(teamsData);
     } catch (err) {
       setError(err.message);

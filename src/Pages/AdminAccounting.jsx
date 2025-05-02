@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import AccountingAnalytics from '../Components/AdminAccounting/AccountingAnalytics';
 import AccountingUser from '../Components/AdminAccounting/AccountingUser';
 import AccountingPayments from '../Components/AdminAccounting/AccountingPayments';
@@ -8,6 +9,7 @@ import Api from '../Api';
 
 const AdminAccounting = () => {
   const { isDarkMode } = useDarkMode();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [accountingData, setAccountingData] = useState({
@@ -113,6 +115,14 @@ const AdminAccounting = () => {
     fetchAccountingData();
   }, []);
 
+  // Clear active tab when navigating away
+  useEffect(() => {
+    return () => {
+      localStorage.removeItem('accountingActiveTab');
+    };
+  }, [location.pathname]);
+
+  // Save active tab only while on this page
   useEffect(() => {
     localStorage.setItem('accountingActiveTab', activeTab);
   }, [activeTab]);

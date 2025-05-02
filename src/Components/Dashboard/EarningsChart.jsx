@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import * as echarts from 'echarts';
 import { useDarkMode } from '../../contexts/DarkModeContext';
 import Api from '../../Api';
+import TooltipIcon from '../Common/TooltipIcon';
 
 const EarningsChart = ({ userData }) => {
   const { isDarkMode } = useDarkMode();
@@ -124,12 +125,7 @@ const EarningsChart = ({ userData }) => {
         <h3 className={`text-base sm:text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
           Earnings Overview
         </h3>
-        <div className="relative group">
-          <i className="fas fa-info-circle text-gray-400 hover:text-gray-500 cursor-help"></i>
-          <div className="absolute z-10 w-64 p-2 mt-2 text-sm text-white bg-gray-900 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 right-0">
-            Shows your commission earnings from finalized customers by month for the current year
-          </div>
-        </div>
+        <TooltipIcon content="Shows your commission earnings from finalized customers by month for the current year" />
       </div>
       <div id="earnings-chart" className="w-full" style={{ height: '300px' }}></div>
     </div>

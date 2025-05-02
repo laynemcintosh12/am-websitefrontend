@@ -71,7 +71,7 @@ const StatsCards = () => {
         }
 
         // Count active customers (same as Total Customers in CustomerDataBlocks)
-        const excludedStatuses = ['Lost - Unreclaimable', 'Lost - Reclaimable'];
+        const excludedStatuses = ['Finalized', 'Lost - Unreclaimable', 'Lost - Reclaimable'];
         const activeCustomers = customers.filter(customer => {
           const isUserCustomer = 
             customer.salesman_id === userData.user.id ||

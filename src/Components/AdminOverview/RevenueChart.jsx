@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as echarts from 'echarts';
+import TooltipIcon from '../Common/TooltipIcon';
 
 const RevenueChart = ({ isDarkMode, customers, commissionsPaid }) => {
   const chartRef = useRef(null);
@@ -140,12 +141,7 @@ const RevenueChart = ({ isDarkMode, customers, commissionsPaid }) => {
         <h3 className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
           Revenue & Commission Trends
         </h3>
-        <div className="relative group">
-          <i className="fas fa-info-circle text-gray-400 hover:text-gray-500 cursor-help"></i>
-          <div className="absolute z-10 w-72 p-2 -ml-64 text-sm text-white bg-gray-900 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 right-0">
-            Shows monthly revenue from finalized projects and paid commissions over the last 12 months
-          </div>
-        </div>
+        <TooltipIcon content="Shows monthly revenue from finalized projects and paid commissions over the last 12 months" />
       </div>
       <div ref={chartRef} style={{ height: '400px' }}></div>
     </div>

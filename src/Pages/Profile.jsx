@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import ProfileHeader from '../Components/Profile/ProfileHeader';
 import StatsCards from '../Components/Profile/StatsCards';
@@ -10,20 +11,25 @@ import Api from '../Api';
 
 const Profile = () => {
   const { isDarkMode } = useDarkMode();
-  // Update activeTab initialization to check localStorage
-  const [activeTab, setActiveTab] = useState(() => {
-    const savedTab = localStorage.getItem('profileActiveTab');
-    return savedTab || 'overview';
-  });
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState('overview');
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Add effect to save activeTab to localStorage when it changes
+  // Effect to handle tab persistence
   useEffect(() => {
-    localStorage.setItem('profileActiveTab', activeTab);
-  }, [activeTab]);
+    const savedTab = localStorage.getItem('profileActiveTab');
+    if (savedTab) {
+      setActiveTab(savedTab);
+    }
+    
+    // Cleanup function to remove saved tab when navigating away
+    return () => {
+      localStorage.removeItem('profileActiveTab');
+    };
+  }, [location.pathname]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -54,6 +60,14 @@ const Profile = () => {
 
     fetchUserProfile();
   }, []);
+
+  // Modified setIsEditing to handle tab reset
+  const handleEditToggle = (editing) => {
+    setIsEditing(editing);
+    if (editing) {
+      setActiveTab('overview');
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -98,7 +112,7 @@ const Profile = () => {
             <ProfileHeader 
               profile={profile} 
               isEditing={isEditing} 
-              setIsEditing={setIsEditing} 
+              setIsEditing={handleEditToggle} // Updated to use new handler
               handleSave={handleSave} 
             />
             

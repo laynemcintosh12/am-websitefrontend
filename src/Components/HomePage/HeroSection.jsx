@@ -102,18 +102,27 @@ const HeroSection = () => {
               </div>
             </div>
           </div>
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <button 
               onClick={scrollToContact}
-              className="bg-orange-600 text-white px-8 py-4 text-lg !rounded-button hover:bg-orange-700 transition-colors whitespace-nowrap flex items-center"
+              className="w-full sm:w-auto bg-orange-600 text-white px-6 sm:px-8 py-3 sm:py-4 
+                text-base sm:text-lg !rounded-button hover:bg-orange-700 transition-colors 
+                whitespace-nowrap flex items-center justify-center"
             >
               <i className="fas fa-calendar-alt mr-2"></i>
-              Schedule Free Inspection
+              <span className="sm:hidden">Schedule Inspection</span>
+              <span className="hidden sm:inline">Schedule Free Inspection</span>
             </button>
-            <button className="bg-white/20 backdrop-blur-md text-white px-8 py-4 text-lg !rounded-button hover:bg-white/30 transition-colors whitespace-nowrap flex items-center">
+            
+            <a 
+              href="tel:502-539-8056"
+              className="w-full sm:w-auto bg-white/20 backdrop-blur-md text-white px-6 sm:px-8 
+                py-3 sm:py-4 text-base sm:text-lg !rounded-button hover:bg-white/30 
+                transition-colors whitespace-nowrap flex items-center justify-center"
+            >
               <i className="fas fa-phone-alt mr-2"></i>
-              Call Now
-            </button>
+              <span>Call Now</span>
+            </a>
           </div>
         </div>
       </div>

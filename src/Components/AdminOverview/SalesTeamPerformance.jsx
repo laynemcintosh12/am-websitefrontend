@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import TooltipIcon from '../Common/TooltipIcon';
 
 const SalesTeamPerformance = ({ isDarkMode, processedTeams }) => {
   const [displayTeams, setDisplayTeams] = useState([]);
@@ -49,11 +50,19 @@ const SalesTeamPerformance = ({ isDarkMode, processedTeams }) => {
   return (
     <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
       {displayTeams.map((team, index) => (
-        <div key={index} className={`p-4 ${team.bgColor} rounded-lg relative group`}>
+        <div key={index} className={`p-4 ${team.bgColor} rounded-lg relative`}>
           <div className="flex items-center justify-between">
-            <h3 className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              {team.team}
-            </h3>
+            <div className="flex items-center">
+              <h3 className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                {team.team}
+              </h3>
+              <TooltipIcon content={`
+                Team Details:
+                • Revenue: Total from finalized customers
+                • Conversion: Finalized / Total customers
+                • Manager: ${team.leader}
+              `} />
+            </div>
             <span className={`text-xs ${team.badgeColor} px-2 py-1 rounded-full`}>
               {team.leader}
             </span>

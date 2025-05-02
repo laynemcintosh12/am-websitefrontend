@@ -242,9 +242,6 @@ const AdminOverview = () => {
         />
         <div className="grid grid-cols-1 gap-6 mb-8 lg:grid-cols-2">
           <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-6`}>
-            <h2 className={`text-lg font-medium mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Revenue Trends
-            </h2>
             <RevenueChart 
               isDarkMode={isDarkMode}
               customers={adminData.customers}

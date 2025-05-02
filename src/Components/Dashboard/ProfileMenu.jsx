@@ -6,6 +6,7 @@ const ProfileMenu = ({ isOpen, setIsOpen }) => {
   const { isDarkMode, setIsDarkMode } = useDarkMode();
   const [userName, setUserName] = useState('Loading...');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSyncing, setSyncing] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -35,15 +36,16 @@ const ProfileMenu = ({ isOpen, setIsOpen }) => {
 
   const handleSync = async () => {
     try {
+      setSyncing(true);
       const response = await Api.syncCustomers();
       console.log('Sync response:', response);
-      
-      // Dispatch custom event instead of page reload
-      window.dispatchEvent(new Event('customerSync'));
-      
       console.log(`Sync completed. Processed ${response.customersProcessed} customers.`);
+      // Refresh the page after sync
+      window.location.reload();
     } catch (error) {
       console.error('Sync failed:', error);
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -67,6 +69,10 @@ const ProfileMenu = ({ isOpen, setIsOpen }) => {
             <i className="fas fa-user text-gray-400 w-5"></i>
             <span>My Profile</span>
           </a>
+          <a href="/financials" className={`flex items-center px-4 py-2 text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}>
+            <i className="fas fa-dollar-sign text-gray-400 w-5"></i>
+            <span>Financials</span>
+          </a>
           {isAdmin && (
             <a href="/admin-overview" className={`flex items-center px-4 py-2 text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}>
               <i className="fas fa-tools text-gray-400 w-5"></i>
@@ -87,10 +93,13 @@ const ProfileMenu = ({ isOpen, setIsOpen }) => {
           )}
           <button
             onClick={handleSync}
-            className={`flex items-center px-4 py-2 text-sm w-full text-left ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}
+            disabled={isSyncing}
+            className={`flex items-center px-4 py-2 text-sm w-full text-left ${
+              isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'
+            }`}
           >
-            <i className="fas fa-sync text-gray-400 w-5"></i>
-            <span>Sync Data</span>
+            <i className={`fas fa-sync text-gray-400 w-5 ${isSyncing ? 'animate-spin' : ''}`}></i>
+            <span>{isSyncing ? 'Syncing...' : 'Sync Data'}</span>
           </button>
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
