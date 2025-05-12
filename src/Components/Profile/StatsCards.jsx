@@ -25,22 +25,26 @@ const StatsCards = () => {
         setIsSupplementRole(isSupplementRole); // Set the role state
         const isAffiliateRole = userRole === 'Affiliate';
 
-        // Get all data needed
-        const [commissions, customers, summary] = await Promise.all([
+        // Update the Promise.all to include userBalances
+        const [commissions, customers, summary, userBalances] = await Promise.all([
           Api.getAllCommissions(),
           Api.getCustomers(),
-          Api.getUserCommissionSummary(userData.user.id)
+          Api.getUserCommissionSummary(userData.user.id),
+          Api.getAllUserBalances()
         ]);
 
-        // Filter commissions for current user
-        const userCommissions = commissions.filter(comm => 
-          comm.user_id === userData.user.id
-        );
+        // Get user's balance data
+        const userBalance = userBalances.find(balance => balance.user_id === userData.user.id) || {
+          total_commissions_earned: 0
+        };
 
-        // Calculate total commission (all time, no date filter)
-        const totalCommission = userCommissions.reduce((sum, commission) => 
-          sum + Number(commission.commission_amount), 0
-        );
+        // Use the total_commissions_earned from userBalance instead of calculating
+        const totalCommission = Number(userBalance.total_commissions_earned);
+
+        // Remove the old calculation:
+        // const totalCommission = userCommissions.reduce((sum, commission) => 
+        //   sum + Number(commission.commission_amount), 0
+        // );
 
         // Calculate total sales or margin based on user role
         let totalAmount = 0;
@@ -71,7 +75,7 @@ const StatsCards = () => {
         }
 
         // Count active customers (same as Total Customers in CustomerDataBlocks)
-        const excludedStatuses = ['Finalized', 'Lost - Unreclaimable', 'Lost - Reclaimable'];
+        const excludedStatuses = ['Finalized', 'Lost - Unreclaimable', 'Lost - Reclaimable','Lead', 'Appt Scheduled', 'Inspection Complete'];
         const activeCustomers = customers.filter(customer => {
           const isUserCustomer = 
             customer.salesman_id === userData.user.id ||
@@ -84,7 +88,7 @@ const StatsCards = () => {
 
         setStats({
           totalAmount,  // renamed from totalSales
-          totalCommission,
+          totalCommission, // This now comes from userBalance
           activeCustomers
         });
 

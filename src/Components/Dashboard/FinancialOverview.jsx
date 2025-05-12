@@ -16,26 +16,28 @@ const FinancialOverview = ({ userData }) => {
   useEffect(() => {
     const fetchFinancialData = async () => {
       try {
-        // Get all commissions
-        const allCommissions = await Api.getAllCommissions();
         const currentUserId = userData.id;
         const currentYear = new Date().getFullYear();
         const currentMonth = new Date().getMonth();
+
+        // Get all necessary data in parallel
+        const [allCommissions, customers, userBalances] = await Promise.all([
+          Api.getAllCommissions(),
+          Api.getCustomers(),
+          Api.getAllUserBalances()
+        ]);
+
+        // Get current user's balance
+        const userBalance = userBalances.find(balance => balance.user_id === currentUserId) || {
+          total_commissions_earned: 0
+        };
 
         // Filter commissions for current user
         const userCommissions = allCommissions.filter(commission => 
           commission.user_id === currentUserId
         );
 
-        // Calculate YTD and monthly commissions
-        const yearlyCommissions = userCommissions.reduce((sum, commission) => {
-          const buildDate = new Date(commission.build_date);
-          if (buildDate.getFullYear() === currentYear) {
-            return sum + Number(commission.commission_amount);
-          }
-          return sum;
-        }, 0);
-
+        // Calculate monthly commissions (keep this calculation)
         const monthlyCommissions = userCommissions.reduce((sum, commission) => {
           const buildDate = new Date(commission.build_date);
           if (buildDate.getFullYear() === currentYear && 
@@ -45,10 +47,12 @@ const FinancialOverview = ({ userData }) => {
           return sum;
         }, 0);
 
+        // Use total_commissions_earned from userBalance instead of calculating yearly
+        const yearlyCommissions = Number(userBalance.total_commissions_earned);
+        const yearlyGoal = userData?.yearly_goal || 100000;
+        const goalsProgress = (yearlyCommissions / yearlyGoal) * 100;
+
         // Get customer data for potential commissions
-        const customers = await Api.getCustomers();
-        
-        // Filter for relevant customers
         const relevantCustomers = customers.filter(customer => 
           (customer.salesman_id === currentUserId ||
            customer.supplementer_id === currentUserId ||
@@ -72,14 +76,11 @@ const FinancialOverview = ({ userData }) => {
           }
         }
 
-        // Calculate goals progress
-        const goalsProgress = (yearlyCommissions / (userData?.yearly_goal || 100000)) * 100;
-
         // Update financial metrics
         setFinancialMetrics({
-          yearlyCommissions,
+          yearlyCommissions,  // Now using the value from userBalance
           monthlyCommissions,
-          yearlyGoal: userData?.yearly_goal || 100000,
+          yearlyGoal,
           potentialCommissions,
           goalsProgress: Math.min(goalsProgress, 100)
         });
@@ -174,8 +175,8 @@ const FinancialOverview = ({ userData }) => {
               <div className={`mt-1 w-full ${card.title === 'Goals Progress' ? 'block' : 'hidden'}`}>
                 <div className="bg-gray-200 rounded-full h-2">
                   <div 
-                    className={`bg-${card.color}-500 rounded-full h-2`}
-                    style={{ width: `${financialMetrics.goalsProgress}%` }}
+                    className={`bg-purple-500 rounded-full h-2 transition-all duration-500 ease-in-out`}
+                    style={{ width: `${Math.min(card.value, 100)}%` }}
                   ></div>
                 </div>
               </div>

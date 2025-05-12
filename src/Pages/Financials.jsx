@@ -11,6 +11,11 @@ const Financials = () => {
   const [activeCustomers, setActiveCustomers] = useState([]);
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [financialMetrics, setFinancialMetrics] = useState({
+    totalEarned: 0,
+    totalPaid: 0,
+    currentBalance: 0
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -18,18 +23,22 @@ const Financials = () => {
         const userData = JSON.parse(localStorage.getItem('user'));
         const userId = userData?.user?.id;
 
-        // Fetch all customers
-        const allCustomers = await Api.getCustomers();
-        
-        // Filter customers into team and user lists
-        const teamCustomers = allCustomers.filter(customer => 
-          customer.salesman_id === userId ||
-          customer.supplementer_id === userId ||
-          customer.manager_id === userId ||
-          customer.supplement_manager_id === userId ||
-          customer.referrer_id === userId
-        );
+        // Get initial data
+        const [allCustomers, allCommissions, allPayments, userBalances] = await Promise.all([
+          Api.getCustomers(),
+          Api.getAllCommissions(),
+          Api.getAllPayments(),
+          Api.getAllUserBalances()
+        ]);
 
+        // Get the current user's balance data
+        const userBalance = userBalances.find(balance => balance.user_id === userId) || {
+          total_commissions_earned: 0,
+          total_payments_received: 0,
+          current_balance: 0
+        };
+
+        // Filter customers
         const usersCustomers = allCustomers.filter(customer =>
           customer.salesman_id === userId ||
           customer.supplementer_id === userId ||
@@ -40,9 +49,11 @@ const Financials = () => {
         const customerIds = usersCustomers
           .filter(customer => customer.status !== 'Finalized')
           .map(customer => customer.id);
+        
+        // Get potential commissions
         const potentialCommissionsResponse = await Api.calculatePotentialCommissions(customerIds);
         
-        // Format active customers directly from the potential commissions response
+        // Format active customers
         const formattedActiveCustomers = potentialCommissionsResponse.potentialCommissions
           .filter(commission => {
             const customer = usersCustomers.find(c => c.id === commission.customerId);
@@ -54,47 +65,36 @@ const Financials = () => {
             potentialCommission: commission.amount || 0
           }));
 
-        // Get all commissions and filter for finalized customers
-        const allCommissions = await Api.getAllCommissions();
+        // Format finalized customers
         const userCommissions = allCommissions.filter(commission => commission.user_id === userId);
-        
-        // Format finalized customers using data directly from the API
         const formattedFinalizedCustomers = userCommissions.map(commission => ({
           id: commission.customer_id,
           name: commission.customer_name,
           commission: parseFloat(commission.commission_amount)
         }));
 
-        // Get payment history
-        try {
-          const userData = JSON.parse(localStorage.getItem('user'));
-          if (!userData?.user?.id) {
-            throw new Error('User not authenticated');
-          }
+        // Format payments
+        const userPayments = allPayments.filter(payment => payment.user_id === userId);
+        const formattedPayments = userPayments.map(payment => ({
+          id: payment.id,
+          date: payment.payment_date,
+          type: payment.payment_type,
+          notes: payment.notes || '',
+          amount: payment.amount || 0
+        }));
 
-          const allPayments = await Api.getAllPayments();
-          if (!Array.isArray(allPayments)) {
-            throw new Error('Invalid payment data received');
-          }
-
-          // Filter payments for current user
-          const userPayments = allPayments.filter(payment => payment.user_id === userId);
-
-          const formattedPayments = userPayments.map(payment => ({
-            id: payment.id,
-            date: payment.payment_date,
-            type: payment.payment_type,
-            notes: payment.notes || '',
-            amount: payment.amount || 0
-          }));
-          setPaymentHistory(formattedPayments);
-        } catch (error) {
-          console.error('Error fetching payment history:', error.message);
-          setPaymentHistory([]);
-        }
-
+        // Update state
         setActiveCustomers(formattedActiveCustomers);
         setFinalizedCustomers(formattedFinalizedCustomers);
+        setPaymentHistory(formattedPayments);
+        
+        // Set financial metrics from user balance
+        setFinancialMetrics({
+          totalEarned: Number(userBalance.total_commissions_earned),
+          totalPaid: Number(userBalance.total_payments_received),
+          currentBalance: Number(userBalance.current_balance)
+        });
+
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -105,12 +105,8 @@ const Financials = () => {
     fetchData();
   }, []);
 
-  // Metrics calculations
-  const totalEarned = finalizedCustomers.reduce((sum, customer) => sum + customer.commission, 0);
-  const totalPaid = paymentHistory.reduce((sum, payment) => sum + payment.amount, 0);
-  const currentBalance = totalEarned - totalPaid;
+  // Keep the potential commission calculation as is
   const potentialCommission = activeCustomers.reduce((sum, customer) => {
-    // Only add to sum if potentialCommission is positive
     return sum + (customer.potentialCommission > 0 ? customer.potentialCommission : 0);
   }, 0);
 
@@ -136,10 +132,10 @@ const Financials = () => {
         <h1 className="text-2xl md:text-3xl font-bold mb-8">Financial Dashboard</h1>
         
         <BalanceMetrics 
-          totalEarned={totalEarned}
+          totalEarned={financialMetrics.totalEarned}
           potentialCommission={potentialCommission}
-          totalPaid={totalPaid}
-          currentBalance={currentBalance}
+          totalPaid={financialMetrics.totalPaid}
+          currentBalance={financialMetrics.currentBalance}
           formatCurrency={formatCurrency}
           isDarkMode={isDarkMode}
         />

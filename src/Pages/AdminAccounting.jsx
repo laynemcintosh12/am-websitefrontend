@@ -6,6 +6,7 @@ import AccountingPayments from '../Components/AdminAccounting/AccountingPayments
 import AccountingHistory from '../Components/AdminAccounting/AccountingHistory';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import Api from '../Api';
+import AccountingAdjustments from '../Components/AdminAccounting/AccountingAdjustments';
 
 const AdminAccounting = () => {
   const { isDarkMode } = useDarkMode();
@@ -39,7 +40,7 @@ const AdminAccounting = () => {
           Api.getCustomers(),
           Api.getAllUserBalances()
         ]);
-
+        console.log("User Balances:", userBalances);
         // Calculate total earned (without debuggers)
         const totalEarnedByUser = {};
         allCommissions.forEach(commission => {
@@ -50,13 +51,6 @@ const AdminAccounting = () => {
           }
           totalEarnedByUser[userId] += amount;
         });
-
-        // Update user balances
-        const updatedUserBalances = users.map(user => ({
-          ...userBalances.find(b => b.user_id === user.id) || {},
-          user_id: user.id,
-          total_commissions_earned: totalEarnedByUser[user.id] || 0
-        }));
 
         // Get active customers (without debug)
         const activeCustomers = customers.filter(customer => 
@@ -100,9 +94,10 @@ const AdminAccounting = () => {
           users,
           payments,
           commissions: allCommissions,
-          userBalances: updatedUserBalances,
+          userBalances: userBalances,
           userPotentialCommissions
         });
+        console.log("Accounting Data:", accountingData.userBalances);
 
       } catch (err) {
         console.error('Error loading accounting data:', err);
@@ -194,9 +189,10 @@ const AdminAccounting = () => {
         </div>
         
         <div className="mb-8">
-          <div className={`grid grid-cols-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <div className={`grid grid-cols-5 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            {/* Analytics Tab */}
             <button
-              className={`flex flex-col items-center px-1 sm:px-4 py-2 font-medium cursor-pointer text-[10px] sm:text-sm ${
+              className={`flex flex-col items-center px-1 sm:px-3 py-2 font-medium cursor-pointer text-[10px] sm:text-sm ${
                 activeTab === 'analytics' ?
                 (isDarkMode ? 'border-b-2 border-blue-400 text-blue-400' : 'border-b-2 border-blue-500 text-blue-600') :
                 (isDarkMode ? 'text-gray-400' : 'text-gray-600')}`}
@@ -206,7 +202,7 @@ const AdminAccounting = () => {
               <span className="hidden sm:inline">Analytics</span>
               <span className="sm:hidden">Stats</span>
             </button>
-            
+
             <button
               className={`flex flex-col items-center px-1 sm:px-4 py-2 font-medium cursor-pointer text-[10px] sm:text-sm ${
                 activeTab === 'users' ?
@@ -241,6 +237,18 @@ const AdminAccounting = () => {
               <i className="fas fa-history mb-1 sm:mb-0 sm:mr-2"></i>
               <span className="hidden sm:inline">Payment History</span>
               <span className="sm:hidden">History</span>
+            </button>
+
+            <button
+              className={`flex flex-col items-center px-1 sm:px-3 py-2 font-medium cursor-pointer text-[10px] sm:text-sm ${
+                activeTab === 'adjustments' ?
+                (isDarkMode ? 'border-b-2 border-blue-400 text-blue-400' : 'border-b-2 border-blue-500 text-blue-600') :
+                (isDarkMode ? 'text-gray-400' : 'text-gray-600')}`}
+              onClick={() => setActiveTab('adjustments')}
+            >
+              <i className="fas fa-sliders-h mb-1 sm:mb-0 sm:mr-2"></i>
+              <span className="hidden sm:inline">Adjustments</span>
+              <span className="sm:hidden">Adjust</span>
             </button>
           </div>
         </div>
@@ -278,6 +286,13 @@ const AdminAccounting = () => {
             users={accountingData.users}
             payments={accountingData.payments}
             userBalances={accountingData.userBalances}
+            isDarkMode={isDarkMode}
+          />
+        )}
+
+        {activeTab === 'adjustments' && (
+          <AccountingAdjustments 
+            users={accountingData.users}
             isDarkMode={isDarkMode}
           />
         )}

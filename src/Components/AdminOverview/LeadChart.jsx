@@ -64,19 +64,61 @@ const LeadChart = ({ isDarkMode, customers }) => {
           borderColor: isDarkMode ? '#4b5563' : '#e5e7eb',
           textStyle: { color: textColor }
         },
+        legend: {
+          orient: 'horizontal',
+          top: '0%',
+          left: 'center',
+          width: '100%',
+          itemGap: 20,
+          textStyle: {
+            color: textColor,
+            fontSize: 12
+          },
+          formatter: function(name) {
+            const item = leadData.find(d => d.name === name);
+            return `${name}: ${item.value}`;
+          },
+          itemWidth: 12,
+          itemHeight: 12,
+          grid: {
+            left: '10%',
+            right: '10%',
+            containLabel: true
+          },
+          // Arrange items in 2 columns
+          data: leadData.reduce((acc, item, index) => {
+            const column = Math.floor(index / Math.ceil(leadData.length / 2));
+            if (!acc[column]) acc[column] = [];
+            acc[column].push(item.name);
+            return acc;
+          }, []).flat()
+        },
         series: [{
           name: 'Lead Sources',
           type: 'pie',
-          radius: ['40%', '70%'],
-          center: ['50%', '50%'],
+          radius: ['25%', '55%'],
+          center: ['50%', '60%'], // Moved down to accommodate legend
           avoidLabelOverlap: true,
           itemStyle: {
             borderRadius: 10,
             borderColor: isDarkMode ? '#1f2937' : '#fff',
             borderWidth: 2
           },
-          label: { show: false },
-          labelLine: { show: false },
+          label: {
+            show: true,
+            position: 'outside',
+            formatter: '{d}%',
+            color: textColor,
+            fontSize: 12
+          },
+          labelLine: {
+            show: true,
+            length: 15,
+            length2: 10,
+            lineStyle: {
+              color: isDarkMode ? '#4b5563' : '#d1d5db'
+            }
+          },
           emphasis: {
             scale: true,
             scaleSize: 12,
@@ -101,7 +143,11 @@ const LeadChart = ({ isDarkMode, customers }) => {
     }
   }, [isDarkMode, leadData]);
 
-  return <div ref={chartRef} style={{ height: '450px' }}></div>;
+  return (
+    <div className="h-[450px] w-full">
+      <div ref={chartRef} className="h-full w-full" />
+    </div>
+  );
 };
 
 export default LeadChart;

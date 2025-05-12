@@ -9,6 +9,13 @@ import TeamMembersTable from '../Components/AdminOverview/TeamMembersTable';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import Api from '../Api';
 
+// Common status groupings to use across components
+const STATUS_GROUPS = {
+  PROSPECTIVE: ['Lead', 'Appt Scheduled', 'Inspection Complete'],
+  FINALIZED: ['Finalized'],
+  LOST: ['Lost - Reclaimable', 'Lost - Unreclaimable'],
+};
+
 const AdminOverview = () => {
   const { isDarkMode } = useDarkMode();
   const [loading, setLoading] = useState(true);
@@ -111,17 +118,28 @@ const AdminOverview = () => {
           Api.getAllCommissionSummary()
         ]);
 
-        console.log('API Response Data:', {
-          customersCount: customers.length,
-          usersCount: users.length,
-          teamsCount: teams.length,
-          commissionsCount: allCommissions.length,
-          paymentsCount: allPayments.length,
-          summaryData: commissionSummary
-        });
+        // Filter customers by status
+        const prospectiveCustomers = customers.filter(c => 
+          STATUS_GROUPS.PROSPECTIVE.includes(c.status)
+        );
 
-        // Calculate statistics
-        const finalizedCustomers = customers.filter(c => c.status === 'Finalized');
+        const currentCustomers = customers.filter(c => 
+          ![
+            ...STATUS_GROUPS.PROSPECTIVE,
+            ...STATUS_GROUPS.FINALIZED,
+            ...STATUS_GROUPS.LOST
+          ].includes(c.status)
+        );
+
+        const finalizedCustomers = customers.filter(c => 
+          STATUS_GROUPS.FINALIZED.includes(c.status)
+        );
+
+        const lostCustomers = customers.filter(c => 
+          STATUS_GROUPS.LOST.includes(c.status)
+        );
+
+        // Calculate statistics using the filtered customers
         const currentYear = new Date().getFullYear();
         const yearlyCustomers = customers.filter(c => 
           new Date(c.created_at).getFullYear() === currentYear
@@ -132,16 +150,12 @@ const AdminOverview = () => {
           sum + Number(c.total_job_price || 0), 0
         );
 
-        // Calculate total commissions from all commission records
+        // Calculate total commissions
         const totalCommissions = allCommissions.reduce((sum, commission) => 
           sum + Number(commission.commission_amount || 0), 0
         );
 
         // Calculate conversion rate
-        const lostCustomers = customers.filter(c => 
-          c.status === 'Lost - Reclaimable' || c.status === 'Lost - Unreclaimable'
-        );
-
         const conversionRate = finalizedCustomers.length > 0 
           ? (finalizedCustomers.length / (finalizedCustomers.length + lostCustomers.length)) * 100
           : 0;
@@ -157,25 +171,20 @@ const AdminOverview = () => {
             ) / supplementedCustomers.length
           : 0;
 
-        // Current customers (not finalized or lost)
-        const currentCustomers = customers.filter(c => 
-          !['Finalized', 'Lost - Unreclaimable', 'Lost - Reclaimable'].includes(c.status)
-        );
-
+        // Update stats calculation
         const stats = {
+          totalProspectiveCustomers: prospectiveCustomers.length,
+          totalCurrentCustomers: currentCustomers.length,
+          totalFinalizedCustomers: finalizedCustomers.length,
           totalRevenue,
-          totalCommissionsPaid: totalCommissions, // Updated to use actual commission sum
+          totalCommissionsPaid: totalCommissions,
           averageJobPrice: finalizedCustomers.length > 0
             ? totalRevenue / finalizedCustomers.length
             : 0,
           averageMarginIncrease,
           totalYearlyCustomers: yearlyCustomers.length,
-          totalCurrentCustomers: currentCustomers.length,
-          totalFinalizedCustomers: finalizedCustomers.length,
-          conversionRate // Add this new stat
+          conversionRate
         };
-
-        console.log('Calculated Statistics:', stats);
 
         // Process team data
         const processedTeams = processTeamData(teams, customers);
@@ -187,7 +196,7 @@ const AdminOverview = () => {
           commissions: allCommissions,
           commissionsPaid: allPayments,
           stats,
-          processedTeams // Add this new field
+          processedTeams
         });
 
       } catch (err) {

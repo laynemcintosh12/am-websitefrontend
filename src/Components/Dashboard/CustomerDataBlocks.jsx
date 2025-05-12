@@ -17,32 +17,55 @@ const CustomerDataBlocks = ({ userData }) => {
     return <div className="animate-pulse">Loading...</div>;
   }
 
+  // Add debug logging
+  console.log('UserData received:', userData);
+  console.log('Metrics:', userData.metrics);
+  console.log('Team Metrics:', userData.metrics.teamMetrics);
+  
   const metrics = userData.metrics;
   const isAffiliate = userData.role?.includes('Affiliate');
+  
+  // Add debug logging for team metrics validation
+  console.log('Has team metrics check:', {
+    hasTeamMetrics: metrics.teamMetrics && Object.keys(metrics.teamMetrics).length > 0,
+    prospectiveCount: metrics.teamMetrics?.prospectiveCustomers,
+    currentCount: metrics.teamMetrics?.currentCustomers,
+    totalCount: metrics.teamMetrics?.totalCustomers,
+    finalizedCount: metrics.teamMetrics?.finalizedCustomers
+  });
+
   const hasTeamMetrics = metrics.teamMetrics && 
     Object.keys(metrics.teamMetrics).length > 0 && 
-    (metrics.teamMetrics.currentCustomers > 0 || 
+    (metrics.teamMetrics.prospectiveCustomers > 0 ||
+     metrics.teamMetrics.currentCustomers > 0 || 
      metrics.teamMetrics.totalCustomers > 0 || 
      metrics.teamMetrics.finalizedCustomers > 0);
-  
+
+  // Add debug logging for metrics being displayed
+  console.log('Personal Metrics:', {
+    prospective: metrics.prospectiveCustomers,
+    current: metrics.currentCustomers,
+    finalized: metrics.finalizedCustomers
+  });
+
   const blocks = [
     // Team Stats (show for users with team metrics, except Affiliates)
     ...(!isAffiliate && hasTeamMetrics ? [
+      {
+        title: "Team Prospective Customers",
+        value: metrics.teamMetrics?.prospectiveCustomers || 0,
+        subtitle: "Leads & Initial Steps",
+        icon: "handshake",
+        color: "orange",
+        tooltip: "Team customers in statuses: Lead, Appt Scheduled, Inspection Complete"
+      },
       {
         title: "Team Current Customers",
         value: metrics.teamMetrics?.currentCustomers || 0,
         subtitle: "Active projects",
         icon: "users",
         color: "blue",
-        tooltip: "Team customers not in statuses: Finalized, Lost, Lead, Appt Scheduled, Inspection Complete"
-      },
-      {
-        title: "Team Total Customers",
-        value: metrics.teamMetrics?.totalCustomers || 0,
-        subtitle: "All projects",
-        icon: "user-friends",
-        color: "green",
-        tooltip: "All team customers excluding Lost statuses"
+        tooltip: "Team customers not in prospective, finalized, or lost statuses"
       },
       {
         title: "Team Finalized Customers",
@@ -55,20 +78,20 @@ const CustomerDataBlocks = ({ userData }) => {
     ] : []),
     // Personal Stats
     {
+      title: "Prospective Customers",
+      value: metrics.prospectiveCustomers || 0,
+      subtitle: "Leads & Initial Steps",
+      icon: "handshake",
+      color: "orange",
+      tooltip: "Your customers in statuses: Lead, Appt Scheduled, Inspection Complete"
+    },
+    {
       title: "Current Customers",
-      value: metrics.currentCustomers,
+      value: metrics.currentCustomers || 0, // Added null check
       subtitle: "Your active projects",
       icon: "user",
       color: "blue",
-      tooltip: "Your customers not in finalized or lost statuses"
-    },
-    {
-      title: "Total Customers",
-      value: metrics.totalCustomers,
-      subtitle: "All your projects",
-      icon: "users",
-      color: "indigo",
-      tooltip: "All your customers excluding lost statuses"
+      tooltip: "Your customers not in prospective, finalized, or lost statuses"
     },
     {
       title: "Finalized Customers",
@@ -81,16 +104,19 @@ const CustomerDataBlocks = ({ userData }) => {
     {
       title: metrics.isSupplementRole ? "Avg. Margin" : "Conversion Rate",
       value: metrics.isSupplementRole 
-        ? formatCurrency(metrics.performanceMetric || 0, 2)  // Add 2 decimal places for margin
-        : `${(metrics.performanceMetric || 0).toFixed(1)}%`,  // Keep 1 decimal for conversion rate
+        ? formatCurrency(metrics.performanceMetric || 0, 2)
+        : `${(metrics.performanceMetric || 0).toFixed(1)}%`,
       subtitle: metrics.isSupplementRole ? "Per project" : "Success rate",
       icon: metrics.isSupplementRole ? "chart-line" : "percentage",
       color: "yellow",
       tooltip: metrics.isSupplementRole 
         ? "Average margin increase for finalized customers"
-        : "Percentage of customers that reached finalized status compared to those that were lost (Finalized / (Finalized + Lost))"
+        : "Percentage of customers that reached finalized status compared to those that were lost"
     }
   ];
+
+  // Add debug logging for final blocks array
+  console.log('Blocks being rendered:', blocks);
 
   return (
     <div className="space-y-6">

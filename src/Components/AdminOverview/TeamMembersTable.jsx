@@ -39,7 +39,7 @@ const TeamMembersTable = ({ isDarkMode, users, customers, commissionsPaid }) => 
   
     // Calculate current customers (excluding finalized and lost)
     const currentCustomers = assignedCustomers.filter(c => 
-      !['Finalized', 'Lost - Reclaimable', 'Lost - Unreclaimable'].includes(c.status)
+      !['Finalized', 'Lost - Reclaimable', 'Lost - Unreclaimable', 'Lead', 'Appt Scheduled', 'Inspection Complete'].includes(c.status)
     );
   
     // Update commission calculation

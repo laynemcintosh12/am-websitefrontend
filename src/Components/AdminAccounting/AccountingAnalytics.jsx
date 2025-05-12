@@ -26,44 +26,18 @@ const AccountingAnalytics = ({ isDarkMode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const calculateTopPerformers = async (users, allCommissions, activeCustomers, payments) => {
+    const calculateTopPerformers = async (users, userBalances, activeCustomers, payments) => {
       const topPerformersPromises = users.map(async user => {
-        const earnedCommissions = allCommissions
-          .filter(c => c.user_id === user.id)
-          .reduce((sum, c) => sum + Number(c.commission_amount || 0), 0);
-    
-        const userCustomers = activeCustomers.filter(c => 
-          c.salesman_id === user.id ||
-          c.supplementer_id === user.id ||
-          c.manager_id === user.id ||
-          c.supplement_manager_id === user.id ||
-          c.referrer_id === user.id
-        );
-    
-        let potentialCommission = 0;
-        if (userCustomers.length > 0) {
-          const customerIds = userCustomers.map(c => c.id);
-          try {
-            const response = await Api.calculatePotentialCommissions(customerIds, user.id);
-            if (response.potentialCommissions) {
-              potentialCommission = response.potentialCommissions.reduce((sum, pc) => {
-                const amount = Number(pc.amount || 0);
-                return sum + (amount > 0 ? amount : 0);
-              }, 0);
-            }
-          } catch (error) {
-            console.error(`Error calculating potential for top performer ${user.id}:`, error);
-          }
-        }
-    
+        const userBalance = userBalances.find(b => b.user_id === user.id) || {};
+        const earnedCommissions = Number(userBalance.total_commissions_earned || 0);
+       
+        
         return {
           userId: user.id,
           name: user.name,
           total_commissions_earned: earnedCommissions,
-          current_balance: earnedCommissions - (payments
-            .filter(p => p.user_id === user.id)
-            .reduce((sum, p) => sum + Number(p.amount || 0), 0)),
-          potential_commission: potentialCommission
+          current_balance: Number(userBalance.current_balance || 0),
+          potential_commission: 0 // This will be calculated later
         };
       });
     
@@ -75,6 +49,8 @@ const AccountingAnalytics = ({ isDarkMode }) => {
 
     const fetchData = async () => {
       try {
+        console.log("Starting data fetch..."); // Debug point 1
+
         // Get all data in parallel
         const [users, payments, allCommissions, customers, userBalances] = await Promise.all([
           Api.getAllUsers(),
@@ -84,14 +60,21 @@ const AccountingAnalytics = ({ isDarkMode }) => {
           Api.getAllUserBalances()
         ]);
 
-        // Calculate total earned from actual commissions
-        const totalEarned = allCommissions.reduce((sum, commission) => 
-          sum + Number(commission.commission_amount || 0), 0
+        console.log("Data fetched successfully"); // Debug point 2
+        console.log("User Balances:", userBalances); // Debug point 3
+
+        // Calculate totals from userBalances
+        const totalEarned = userBalances.reduce((sum, balance) => 
+          sum + Number(balance.total_commissions_earned || 0), 0
         );
 
-        // Calculate total paid from payments
-        const totalPaid = payments.reduce((sum, payment) => 
-          sum + Number(payment.amount || 0), 0
+        console.log("Total Earned calculated:", totalEarned); // Debug point 4
+        
+        const totalPaid = userBalances.reduce((sum, balance) => 
+          sum + Number(balance.total_payments_received || 0), 0
+        );
+        const currentBalance = userBalances.reduce((sum, balance) => 
+          sum + Number(balance.current_balance || 0), 0
         );
 
         // Get active customers (non-finalized, non-lost)
@@ -129,7 +112,6 @@ const AccountingAnalytics = ({ isDarkMode }) => {
         }
 
         // Calculate current and projected balances
-        const currentBalance = totalEarned - totalPaid;
         const projectedBalance = currentBalance + totalPotential;
 
         setStats({
@@ -140,10 +122,12 @@ const AccountingAnalytics = ({ isDarkMode }) => {
           projectedBalance
         });
 
+        console.log("Stats set:", { totalEarned, totalPaid, currentBalance }); // Debug point 5
+
         // Get and set top performers with required parameters
         const topPerformersData = await calculateTopPerformers(
           users, 
-          allCommissions, 
+          userBalances, 
           activeCustomers, 
           payments
         );
@@ -161,7 +145,7 @@ const AccountingAnalytics = ({ isDarkMode }) => {
         setRecentPayments(recentPaymentsWithUsers);
 
       } catch (error) {
-        console.error('Error fetching analytics data:', error);
+        console.error('Error in fetchData:', error); // Enhanced error logging
       } finally {
         setLoading(false);
       }
@@ -230,7 +214,7 @@ const AccountingAnalytics = ({ isDarkMode }) => {
                     User
                   </th>
                   <th scope="col" className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                    YTD Earned
+                    Total Earned
                   </th>
                   <th scope="col" className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
                     Balance

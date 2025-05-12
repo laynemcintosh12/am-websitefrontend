@@ -70,11 +70,9 @@ const AccountingUser = ({ users, userBalances, userPotentialCommissions, payment
   const renderMobileCard = (user) => {
     const userBalance = userBalances.find(b => b.user_id === user.id) || {};
     const totalEarned = Number(userBalance.total_commissions_earned || 0);
+    const totalPaid = Number(userBalance.total_payments_received || 0); // Changed from finalPaymentSum
+    const currentBalance = Number(userBalance.current_balance || 0);
     const potentialCommission = Number(userPotentialCommissions[user.id] || 0);
-    const totalPaid = payments
-      .filter(payment => payment.user_id === user.id)
-      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-    const currentBalance = totalEarned - totalPaid;
     const projectedBalance = currentBalance + potentialCommission;
 
     return (
@@ -162,7 +160,7 @@ const AccountingUser = ({ users, userBalances, userPotentialCommissions, payment
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-      </div>
+    </div>
 
       {isMobile ? (
         <div className="space-y-4">
@@ -202,14 +200,9 @@ const AccountingUser = ({ users, userBalances, userPotentialCommissions, payment
               {sortedUsers.map(user => {
                 const userBalance = userBalances.find(b => b.user_id === user.id) || {};
                 const totalEarned = Number(userBalance.total_commissions_earned || 0);
+                const totalPaid = Number(userBalance.total_payments_received || 0); // Changed this line
+                const currentBalance = Number(userBalance.current_balance || 0);
                 const potentialCommission = Number(userPotentialCommissions[user.id] || 0);
-                
-                // Calculate total paid from all payments
-                const totalPaid = payments
-                  .filter(payment => payment.user_id === user.id)
-                  .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-
-                const currentBalance = totalEarned - totalPaid;
                 const projectedBalance = currentBalance + potentialCommission;
 
                 return (
@@ -241,12 +234,12 @@ const AccountingUser = ({ users, userBalances, userPotentialCommissions, payment
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={`text-sm ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
-                        ${Number(currentBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={`text-sm ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                        ${Number(projectedBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ${projectedBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                     </td>
                   </tr>
