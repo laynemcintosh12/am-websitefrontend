@@ -26,12 +26,15 @@ class Api {
   }
 
   // Commission Routes
-  static async getUserCommissions() {
-    const userData = JSON.parse(localStorage.getItem('user'));
-    if (!userData?.user?.id) {
-      throw new Error('User ID not found');
+  static async getUserCommissions(userId) {
+    if (!userId) {
+      const userData = JSON.parse(localStorage.getItem('user'));
+      if (!userData?.user?.id) {
+        throw new Error('User ID not found');
+      }
+      userId = userData.user.id;
     }
-    return await this.request("commissions", { user_id: userData.user.id });
+    return await this.request("commissions", { user_id: userId });
   }
 
   static async getAllCommissions() {

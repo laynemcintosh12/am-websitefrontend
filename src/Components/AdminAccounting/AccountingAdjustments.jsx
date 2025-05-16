@@ -33,18 +33,20 @@ const AccountingAdjustments = ({ users, isDarkMode }) => {
 
       try {
         setLoading(true);
-        // First get all commissions for the selected user
+        console.log('Fetching commissions for user:', selectedUser); // Debug log
+
+        // Get commissions for the selected user
         const userCommissions = await Api.getUserCommissions(selectedUser);
+        console.log('Retrieved commissions:', userCommissions); // Debug log
 
         // Then fetch full customer details for each commission
         const customersWithDetails = await Promise.all(
           userCommissions.map(async (commission) => {
             const customerDetails = await Api.getCustomer(commission.customer_id);
-            console.log('Commission being processed:', commission); // Debug log
             return {
               ...customerDetails,
               commissions: [{
-                id: commission.id, // Add this line to include commission ID
+                id: commission.id,
                 commission_amount: commission.commission_amount,
                 user_id: parseInt(selectedUser),
                 customer_id: commission.customer_id,
@@ -56,10 +58,10 @@ const AccountingAdjustments = ({ users, isDarkMode }) => {
           })
         );
 
-        console.log('Processed Customers:', customersWithDetails); // Debug log
+        console.log('Processed customers for user:', selectedUser, customersWithDetails); // Debug log
         setUserCustomers(customersWithDetails);
       } catch (err) {
-        setError('Failed to fetch customer data');
+        setError(`Failed to fetch customer data: ${err.message}`);
         console.error('Error fetching customer data:', err);
       } finally {
         setLoading(false);
