@@ -1,6 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useDarkMode } from '../../contexts/DarkModeContext';
 import Api from '../../Api';
+import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+
+const STATUS_OPTIONS = [
+  'Lead',
+  'Appt Scheduled',
+  'Inspection Complete',
+  'Claim Filed',
+  'Adj Meeting Scheduled',
+  'Waiting On Scope',
+  'Scope Received - Repair',
+  'Scope Received - Approved',
+  'Supplements Sent',
+  'Contract Signed',
+  'Supplements Finalized',
+  'Job Prep',
+  'Being Built',
+  'Final Walk Through',
+  'Job Complete',
+  'Pending Payment',
+  'Lost',
+  'Finalized'
+];
 
 const CustomerList = ({ userData, customerData }) => {
   const { isDarkMode } = useDarkMode();
@@ -11,6 +33,8 @@ const CustomerList = ({ userData, customerData }) => {
     earned: {},
     potential: {}
   });
+  const [sortConfig, setSortConfig] = useState({ key: 'customer_name', direction: 'asc' });
+  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     const fetchCommissions = async () => {
@@ -66,11 +90,48 @@ const CustomerList = ({ userData, customerData }) => {
     }
   }, [customerData.allCustomers, userData?.id]);
 
-  const filteredCustomers = customerData.allCustomers.filter(customer => 
-    showFinalized 
+  const filteredCustomers = customerData.allCustomers.filter(customer => {
+    const matchesFinalized = showFinalized 
       ? customer.status === 'Finalized'
-      : customer.status !== 'Finalized'
-  );
+      : customer.status !== 'Finalized';
+      
+    const matchesStatusFilter = !statusFilter || customer.status === statusFilter;
+    
+    return matchesFinalized && matchesStatusFilter;
+  });
+
+  const sortedFilteredCustomers = React.useMemo(() => {
+    const filtered = filteredCustomers;
+    
+    return [...filtered].sort((a, b) => {
+      const direction = sortConfig.direction === 'asc' ? 1 : -1;
+
+      switch (sortConfig.key) {
+        case 'customer_name':
+          return direction * (a.customer_name.localeCompare(b.customer_name));
+        case 'phone':
+          return direction * ((a.phone || '').localeCompare(b.phone || ''));
+        case 'status':
+          return direction * (a.status.localeCompare(b.status));
+        case 'total_job_price':
+          return direction * (Number(a.total_job_price || 0) - Number(b.total_job_price || 0));
+        case 'margin':
+          const marginA = (Number(a.total_job_price) || 0) - (Number(a.initial_scope_price) || 0);
+          const marginB = (Number(b.total_job_price) || 0) - (Number(b.initial_scope_price) || 0);
+          return direction * (marginA - marginB);
+        case 'commission':
+          const commissionA = a.status === 'Finalized' 
+            ? (commissions.earned[a.id] || 0)
+            : (commissions.potential[a.id] || 0);
+          const commissionB = b.status === 'Finalized'
+            ? (commissions.earned[b.id] || 0)
+            : (commissions.potential[b.id] || 0);
+          return direction * (commissionA - commissionB);
+        default:
+          return 0;
+      }
+    });
+  }, [filteredCustomers, sortConfig, commissions]);
 
   const userRole = userData?.role || '';
   const isSupplementRole = userRole === 'Supplementer' || userRole === 'Supplement Manager';
@@ -135,8 +196,8 @@ const CustomerList = ({ userData, customerData }) => {
   // Calculate pagination
   const indexOfLastCustomer = currentPage * customersPerPage;
   const indexOfFirstCustomer = indexOfLastCustomer - customersPerPage;
-  const currentCustomers = filteredCustomers.slice(indexOfFirstCustomer, indexOfLastCustomer);
-  const totalPages = Math.ceil(filteredCustomers.length / customersPerPage);
+  const currentCustomers = sortedFilteredCustomers.slice(indexOfFirstCustomer, indexOfLastCustomer);
+  const totalPages = Math.ceil(sortedFilteredCustomers.length / customersPerPage);
 
   // Navigation functions
   const goToPage = (pageNumber) => {
@@ -186,24 +247,58 @@ const CustomerList = ({ userData, customerData }) => {
     </tr>
   );
 
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const renderSortIcon = (key) => {
+    if (sortConfig.key !== key) return <FaSort />;
+    return sortConfig.direction === 'asc' ? <FaSortUp /> : <FaSortDown />;
+  };
+
   return (
     <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow`}>
       <div className="p-3 sm:p-6">
         {/* Header section */}
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
           <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             Customer List
           </h2>
-          <button
-            onClick={() => setShowFinalized(!showFinalized)}
-            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium ${
-              showFinalized
-                ? 'bg-green-100 text-green-800'
-                : 'bg-blue-100 text-blue-800'
-            }`}
-          >
-            {showFinalized ? 'Show Active' : 'Show Finalized'}
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium ${
+                isDarkMode 
+                  ? 'bg-gray-700 text-gray-200 border-gray-600' 
+                  : 'bg-white text-gray-800 border-gray-300'
+              } border`}
+            >
+              <option value="">All Statuses</option>
+              {STATUS_OPTIONS.filter(status => 
+                showFinalized ? status === 'Finalized' : status !== 'Finalized'
+              ).map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+            
+            <button
+              onClick={() => {
+                setShowFinalized(!showFinalized);
+                setStatusFilter(''); // Clear status filter when toggling
+              }}
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium ${
+                showFinalized
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-blue-100 text-blue-800'
+              }`}
+            >
+              {showFinalized ? 'Show Active' : 'Show Finalized'}
+            </button>
+          </div>
         </div>
 
         {/* Table section */}
@@ -212,12 +307,19 @@ const CustomerList = ({ userData, customerData }) => {
             {/* Headers - hidden on mobile */}
             <thead className={`hidden sm:table-header-group ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
               <tr>
-                {columns.map((column, index) => (
+                {columns.map((column) => (
                   <th
-                    key={index}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    key={column.key}
+                    scope="col"
+                    onClick={() => handleSort(column.key)}
+                    className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-500'
+                    }`}
                   >
-                    {column.header}
+                    <div className="flex items-center space-x-1">
+                      <span>{column.header}</span>
+                      {renderSortIcon(column.key)}
+                    </div>
                   </th>
                 ))}
               </tr>

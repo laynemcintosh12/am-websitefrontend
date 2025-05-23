@@ -29,7 +29,18 @@ const AccountingPayments = ({ users, userBalances, isDarkMode, handleSubmitPayme
     }
 
     try {
-      await handleSubmitPayment(formData);
+      // Log the payment data before submission
+      console.log('Payment Data:', {
+        ...formData,
+        paymentDate: formData.paymentDate // Send the date string directly
+      });
+
+      // Send the date string directly instead of converting to ISO
+      await handleSubmitPayment({
+        ...formData,
+        paymentDate: formData.paymentDate // Use the YYYY-MM-DD format directly
+      });
+
       setFormData({
         selectedUser: '',
         paymentAmount: '',

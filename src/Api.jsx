@@ -75,6 +75,14 @@ class Api {
     return await this.request("payments", data, "post");
   }
 
+  static async updatePayment(paymentId, data) {
+    return await this.request(`payments/${paymentId}`, data, "put");
+  }
+
+  static async deletePayment(paymentId) {
+    return await this.request(`payments/${paymentId}`, {}, "delete");
+  }
+
   static async getPaymentDetails(paymentId) {
     return await this.request(`payments/${paymentId}/details`);
   }
