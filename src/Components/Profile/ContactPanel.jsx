@@ -29,6 +29,7 @@ const ContactPanel = () => {
         // Get all teams
         const allTeams = await Api.getTeams();
         
+        console.log('All Teams:', allTeams);  
         // Find user's team and manager
         let managerId = null;
         
@@ -37,7 +38,7 @@ const ContactPanel = () => {
           team.salesman_ids?.includes(currentUserId) || 
           team.supplementer_ids?.includes(currentUserId)
         );
-
+        console.log('User Team:', userTeam);  
         // If team found and has manager, get manager ID
         if (userTeam?.manager_id) {
           managerId = userTeam.manager_id;
@@ -45,7 +46,9 @@ const ContactPanel = () => {
 
         // If manager ID found, get manager details
         if (managerId) {
-          const managerDetails = await Api.getUserDetails(managerId);
+          console.log('Looking up manager with ID:', managerId);
+          const managerDetails = await Api.getUserDetails({ id: managerId }); // FIXED: Pass object with id property
+          console.log('Manager Details:', managerDetails);
           if (managerDetails) {
             setManagerInfo({
               name: managerDetails.name || 'Not Available',
@@ -84,17 +87,25 @@ const ContactPanel = () => {
 
     try {
       const userData = JSON.parse(localStorage.getItem('user'));
-      await Api.reportIssue({
+      console.log('Submitting issue report:', {
         from: userData.user.email,
         description: issueDescription,
         subject: 'NEW ISSUE ON DASHBOARD'
       });
       
+      const response = await Api.reportIssue({
+        from: userData.user.email,
+        description: issueDescription,
+        subject: 'NEW ISSUE ON DASHBOARD'
+      });
+      
+      console.log('Issue report response:', response);
       setSuccess('Issue reported successfully');
       setIssueDescription('');
       setShowReportForm(false);
     } catch (err) {
-      setError('Failed to send report. Please try again.');
+      console.error('Issue report error:', err);
+      setError(`Failed to send report: ${err.message || err}`);
     }
   };
 

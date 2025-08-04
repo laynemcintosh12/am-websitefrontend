@@ -26,87 +26,89 @@ const AdminAccounting = () => {
   });
   const [successMessage, setSuccessMessage] = useState('');
 
-  useEffect(() => {
-    const fetchAccountingData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  // Extract the data fetching logic into a separate function
+  const fetchAccountingData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Get all data in parallel
-        const [users, payments, allCommissions, customers, userBalances] = await Promise.all([
-          Api.getAllUsers(),
-          Api.getAllPayments(),
-          Api.getAllCommissions(),
-          Api.getCustomers(),
-          Api.getAllUserBalances()
-        ]);
-        console.log("User Balances:", userBalances);
-        // Calculate total earned (without debuggers)
-        const totalEarnedByUser = {};
-        allCommissions.forEach(commission => {
-          const userId = commission.user_id;
-          const amount = Number(commission.commission_amount || 0);
-          if (!totalEarnedByUser[userId]) {
-            totalEarnedByUser[userId] = 0;
-          }
-          totalEarnedByUser[userId] += amount;
-        });
+      // Get all data in parallel
+      const [users, payments, allCommissions, customers, userBalances] = await Promise.all([
+        Api.getAllUsers(),
+        Api.getAllPayments(),
+        Api.getAllCommissions(),
+        Api.getCustomers(),
+        Api.getAllUserBalances()
+      ]);
+      console.log("User Balances:", userBalances);
+      
+      // Calculate total earned (without debuggers)
+      const totalEarnedByUser = {};
+      allCommissions.forEach(commission => {
+        const userId = commission.user_id;
+        const amount = Number(commission.commission_amount || 0);
+        if (!totalEarnedByUser[userId]) {
+          totalEarnedByUser[userId] = 0;
+        }
+        totalEarnedByUser[userId] += amount;
+      });
 
-        // Get active customers (without debug)
-        const activeCustomers = customers.filter(customer => 
-          !['Finalized', 'Lost - Reclaimable', 'Lost - Unreclaimable'].includes(customer.status)
+      // Get active customers (without debug)
+      const activeCustomers = customers.filter(customer => 
+        !['Finalized', 'Lost - Reclaimable', 'Lost - Unreclaimable'].includes(customer.status)
+      );
+
+      // Calculate potential commissions for each user from the users array
+      const userPotentialCommissions = {};
+      for (const user of users) {
+        // Get active customers for this specific user
+        const userCustomers = activeCustomers.filter(customer => 
+          customer.salesman_id === user.id ||
+          customer.supplementer_id === user.id ||
+          customer.manager_id === user.id ||
+          customer.supplement_manager_id === user.id ||
+          customer.referrer_id === user.id
         );
 
-        // Calculate potential commissions for each user from the users array
-        const userPotentialCommissions = {};
-        for (const user of users) {
-          // Get active customers for this specific user
-          const userCustomers = activeCustomers.filter(customer => 
-            customer.salesman_id === user.id ||
-            customer.supplementer_id === user.id ||
-            customer.manager_id === user.id ||
-            customer.supplement_manager_id === user.id ||
-            customer.referrer_id === user.id
-          );
-
-          if (userCustomers.length > 0) {
-            try {
-              const customerIds = userCustomers.map(c => c.id);
-              // Pass the specific user.id as second parameter
-              const response = await Api.calculatePotentialCommissions(customerIds, user.id);
-              
-              if (response.potentialCommissions) {
-                userPotentialCommissions[user.id] = response.potentialCommissions.reduce((sum, pc) => {
-                  const amount = Number(pc.amount || 0);
-                  return sum + (amount > 0 ? amount : 0);
-                }, 0);
-              }
-            } catch (error) {
-              console.error(`Error calculating potential commissions for user ${user.id}:`, error);
-              userPotentialCommissions[user.id] = 0;
+        if (userCustomers.length > 0) {
+          try {
+            const customerIds = userCustomers.map(c => c.id);
+            // Pass the specific user.id as second parameter
+            const response = await Api.calculatePotentialCommissions(customerIds, user.id);
+            
+            if (response.potentialCommissions) {
+              userPotentialCommissions[user.id] = response.potentialCommissions.reduce((sum, pc) => {
+                const amount = Number(pc.amount || 0);
+                return sum + (amount > 0 ? amount : 0);
+              }, 0);
             }
-          } else {
+          } catch (error) {
+            console.error(`Error calculating potential commissions for user ${user.id}:`, error);
             userPotentialCommissions[user.id] = 0;
           }
+        } else {
+          userPotentialCommissions[user.id] = 0;
         }
-
-        setAccountingData({
-          users,
-          payments,
-          commissions: allCommissions,
-          userBalances: userBalances,
-          userPotentialCommissions
-        });
-        console.log("Accounting Data:", accountingData.userBalances);
-
-      } catch (err) {
-        console.error('Error loading accounting data:', err);
-        setError(err.message || 'Failed to load accounting data');
-      } finally {
-        setLoading(false);
       }
-    };
 
+      setAccountingData({
+        users,
+        payments,
+        commissions: allCommissions,
+        userBalances: userBalances,
+        userPotentialCommissions
+      });
+      console.log("Accounting Data:", accountingData.userBalances);
+
+    } catch (err) {
+      console.error('Error loading accounting data:', err);
+      setError(err.message || 'Failed to load accounting data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchAccountingData();
   }, []);
 
@@ -134,17 +136,8 @@ const AdminAccounting = () => {
         payment_date: paymentDate
       });
 
-      // Refresh data after payment
-      const [newPayments, newUserBalances] = await Promise.all([
-        Api.getAllPayments(),
-        Api.getAllUserBalances()
-      ]);
-
-      setAccountingData(prev => ({
-        ...prev,
-        payments: newPayments,
-        userBalances: newUserBalances
-      }));
+      // Refresh all data after payment
+      await fetchAccountingData();
 
       setSuccessMessage('Payment logged successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
@@ -153,6 +146,37 @@ const AdminAccounting = () => {
       console.error('Payment submission error:', err);
       setError(err.message || 'Failed to submit payment');
     }
+  };
+
+  // Function to handle payment deletion
+  const handlePaymentDeleted = async (deletedPaymentId) => {
+    // Optimistic update
+    setAccountingData(prevData => ({
+      ...prevData,
+      payments: prevData.payments.filter(payment => payment.id !== deletedPaymentId)
+    }));
+    
+    // Refresh all data to ensure consistency
+    await fetchAccountingData();
+  };
+
+  // Function to handle payment updates
+  const handlePaymentUpdated = async (updatedPayment) => {
+    // Optimistic update
+    setAccountingData(prevData => ({
+      ...prevData,
+      payments: prevData.payments.map(payment => 
+        payment.id === updatedPayment.id ? updatedPayment : payment
+      )
+    }));
+    
+    // Refresh all data to ensure consistency
+    await fetchAccountingData();
+  };
+
+  // Function to handle changes from AccountingAdjustments
+  const handleAdjustmentChange = async () => {
+    await fetchAccountingData();
   };
 
   if (loading) {
@@ -258,7 +282,7 @@ const AdminAccounting = () => {
             users={accountingData.users}
             userBalances={accountingData.userBalances}
             userPotentialCommissions={accountingData.userPotentialCommissions}
-            payments={accountingData.payments} // Add this line
+            payments={accountingData.payments}
             isDarkMode={isDarkMode}
           />
         )}
@@ -270,6 +294,7 @@ const AdminAccounting = () => {
             isDarkMode={isDarkMode}
             handleSubmitPayment={handleSubmitPayment}
             successMessage={successMessage}
+            onDataChange={fetchAccountingData} // Add this prop
           />
         )}
         
@@ -278,6 +303,9 @@ const AdminAccounting = () => {
             payments={accountingData.payments}
             users={accountingData.users}
             isDarkMode={isDarkMode}
+            onPaymentDeleted={handlePaymentDeleted}
+            onPaymentUpdated={handlePaymentUpdated}
+            onDataChange={fetchAccountingData} // Add this prop
           />
         )}
         
@@ -294,6 +322,7 @@ const AdminAccounting = () => {
           <AccountingAdjustments 
             users={accountingData.users}
             isDarkMode={isDarkMode}
+            onDataChange={handleAdjustmentChange} // Add this prop
           />
         )}
       </div>

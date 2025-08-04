@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Api from '../../Api';
 
-const AccountingAdjustments = ({ users, isDarkMode }) => {
+const AccountingAdjustments = ({ users, isDarkMode, onDataChange }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState('');
   const [userCustomers, setUserCustomers] = useState([]);
@@ -84,15 +84,15 @@ const AccountingAdjustments = ({ users, isDarkMode }) => {
   const handleCommissionAdjustment = async (customer, newAmount) => {
     try {
       setLoading(true);
-      console.log('Customer being adjusted:', customer); // Debug log
-      console.log('Customer commissions:', customer.commissions); // Debug log
+      console.log('Customer being adjusted:', customer);
+      console.log('Customer commissions:', customer.commissions);
       
       const commission = customer.commissions[0];
-      console.log('Commission being updated:', commission); // Debug log
+      console.log('Commission being updated:', commission);
       
       // Check if commission exists and has an ID
       if (!commission?.id) {
-        console.error('Commission object:', commission); // Debug log
+        console.error('Commission object:', commission);
         throw new Error('No commission ID found');
       }
 
@@ -114,6 +114,12 @@ const AccountingAdjustments = ({ users, isDarkMode }) => {
       
       setSuccess('Commission updated successfully');
       setEditingCommission(null);
+      
+      // Call parent refresh function
+      if (onDataChange) {
+        await onDataChange();
+      }
+      
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError('Failed to update commission');
@@ -157,10 +163,16 @@ const AccountingAdjustments = ({ users, isDarkMode }) => {
       setSuccess('Commission payment added successfully');
       setGeneralCommission({
         amount: '',
-        payment_type: 'Check', // Note: Changed to capital 'Check'
+        payment_type: 'Check',
         check_number: '',
         notes: ''
       });
+      
+      // Call parent refresh function
+      if (onDataChange) {
+        await onDataChange();
+      }
+      
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(`Failed to add commission payment: ${err.message}`);
@@ -192,12 +204,6 @@ const AccountingAdjustments = ({ users, isDarkMode }) => {
           <h2 className={`text-xl sm:text-2xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             Commission Adjustments
           </h2>
-          <button
-            onClick={() => setShowAddCommission(true)}
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-150"
-          >
-            Add Commission
-          </button>
         </div>
 
         {/* Search Bar */}

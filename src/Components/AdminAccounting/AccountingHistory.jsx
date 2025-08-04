@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { FaFilter, FaTimes, FaEdit, FaSort, FaSortUp, FaSortDown, FaTrash } from 'react-icons/fa';
 import Api from '../../Api';
 
-const AccountingHistory = ({ payments, users, isDarkMode }) => {
+const AccountingHistory = ({ payments, users, isDarkMode, onPaymentDeleted, onPaymentUpdated, onDataChange }) => {
   const [filters, setFilters] = useState({
     search: '',
     dateFrom: '',
@@ -109,8 +109,18 @@ const AccountingHistory = ({ payments, users, isDarkMode }) => {
     if (window.confirm(`Are you sure you want to delete this payment of $${Number(payment.amount).toLocaleString()}?`)) {
       try {
         await Api.deletePayment(payment.id);
-        // Refresh the page to show updated data
-        window.location.reload();
+        
+        // Call the parent component's callback to update the payments list
+        if (onPaymentDeleted) {
+          await onPaymentDeleted(payment.id);
+        }
+        
+        // Call additional refresh function if provided
+        if (onDataChange) {
+          await onDataChange();
+        }
+        
+        alert('Payment deleted successfully!');
       } catch (err) {
         console.error('Error deleting payment:', err);
         alert('Failed to delete payment. Please try again.');
@@ -184,7 +194,7 @@ const AccountingHistory = ({ payments, users, isDarkMode }) => {
     setEditSuccess('');
 
     try {
-      await Api.updatePayment(editingPayment.id, {
+      const updatedPayment = await Api.updatePayment(editingPayment.id, {
         amount: editingPayment.amount,
         payment_type: editingPayment.payment_type,
         check_number: editingPayment.check_number || '',
@@ -193,16 +203,23 @@ const AccountingHistory = ({ payments, users, isDarkMode }) => {
       
       setEditSuccess('Payment updated successfully!');
       
-      // Wait 1.5 seconds, then close modal and refresh
+      // Call the parent component's callback to update the payments list
+      if (onPaymentUpdated) {
+        await onPaymentUpdated(updatedPayment);
+      }
+      
+      // Call additional refresh function if provided
+      if (onDataChange) {
+        await onDataChange();
+      }
+      
+      // Wait 1.5 seconds, then close modal
       setTimeout(() => {
         setShowEditForm(false);
         setEditSuccess('');
-        // Refresh the page
-        window.location.reload();
       }, 1500);
     } catch (err) {
       setEditError('Failed to update payment. Please try again.');
-      // Error message will stay visible until user closes modal or tries again
     }
   };
 

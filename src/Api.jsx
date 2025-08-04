@@ -9,6 +9,8 @@ class Api {
 
   static async request(endpoint, data = {}, method = "get") {
     const url = `${BASE_URL}/${endpoint}`;
+    console.log(`API Request: ${method.toUpperCase()} ${url}`, data); // ADD THIS LINE
+    
     const headers = {
       Authorization: `Bearer ${JSON.parse(localStorage.getItem('user'))?.token}`,
       "Content-Type": "application/json",
@@ -18,9 +20,11 @@ class Api {
 
     try {
       const response = await axios({ url, method, data, params, headers });
+      console.log(`API Response: ${method.toUpperCase()} ${url}`, response.data); // ADD THIS LINE
       return response.data;
     } catch (err) {
       console.error("API Error:", err);
+      console.error("Full error details:", err.response); // ADD THIS LINE
       throw err.response?.data?.error || err.message;
     }
   }
@@ -80,7 +84,19 @@ class Api {
   }
 
   static async deletePayment(paymentId) {
-    return await this.request(`payments/${paymentId}`, {}, "delete");
+    if (!paymentId) {
+      throw new Error('Payment ID is required');
+    }
+    
+    try {
+      return await this.request(`payments/${paymentId}`, {}, 'delete');
+    } catch (error) {
+      // If it's a 404, the payment was already deleted
+      if (error.includes('not found') || error.includes('404')) {
+        throw new Error('Payment has already been deleted');
+      }
+      throw error;
+    }
   }
 
   static async getPaymentDetails(paymentId) {
@@ -161,8 +177,24 @@ class Api {
   }
 
   static async getUserDetails(query) {
-    // If query contains userId, map it to id
-    const params = query.userId ? { id: query.userId } : query;
+    // Handle different input types for getUserDetails
+    let params = {};
+    
+    if (typeof query === 'number' || (typeof query === 'string' && !isNaN(query))) {
+      // If it's a number or numeric string, treat it as an ID
+      params = { id: query };
+    } else if (typeof query === 'object' && query !== null) {
+      // If it's an object, use it directly but map userId to id if needed
+      params = query.userId ? { id: query.userId } : query;
+    } else if (typeof query === 'string') {
+      // If it's a string that contains @, treat as email, otherwise as name
+      if (query.includes('@')) {
+        params = { email: query };
+      } else {
+        params = { name: query };
+      }
+    }
+    
     return await this.request("users/details", params);
   }
 
@@ -280,8 +312,69 @@ class Api {
     return await this.request(`summary`, { user_id: userId });
   }
 
+  // Email Routes
   static async sendEmail(data) {
     return await this.request('email/send', data, 'post');
+  }
+
+  static async reportIssue(data) {
+    return await this.request('email/report-issue', data, 'post');
+  }
+
+  // Team Member Routes
+  static async getUserTeam(userId) {
+    return await this.request(`teams/user/${userId}`);
+  }
+
+  static async getUserTeamsWithHistory(userId, options = {}) {
+    const params = { 
+      historicalDate: options.historicalDate,
+      includeHistory: options.includeHistory
+    };
+    return await this.request(`teams/users/${userId}/teams`, params);
+  }
+
+  static async getTeamMembers(teamId, options = {}) {
+    return await this.request(`teams/${teamId}/members`, options);
+  }
+
+  static async getTeamMembershipHistory(teamId) {
+    return await this.request(`teams/${teamId}/membership-history`);
+  }
+
+  static async addUserToTeam(userData) {
+    return await this.request("teams/membership", userData, "post");
+  }
+
+  static async addUserToTeamWithDate(userData) {
+    // POST /api/teams/membership/dated
+    return await this.request("teams/membership/dated", userData, "post");
+  }
+
+  static async setUserTeamDepartureDate(userId, teamId, departureData) {
+    // PUT /api/teams/membership/:userId/:teamId/departure
+    return await this.request(`teams/membership/${userId}/${teamId}/departure`, departureData, "put");
+  }
+
+  static async removeUserFromTeam(userId, teamId) {
+    return await this.request(`teams/membership/${userId}/${teamId}`, {}, "delete");
+  }
+
+  static async updateUserRoleInTeam(userId, teamId, roleData) {
+    // PUT /api/teams/membership/:userId/:teamId/role
+    return await this.request(`teams/membership/${userId}/${teamId}/role`, roleData, "put");
+  }
+
+  static async checkUserTeamMembershipAtDate(userId, teamId, date) {
+    return await this.request(`teams/membership/${userId}/${teamId}/check`, { date });
+  }
+
+  static async bulkUpdateTeamMemberships(teamId, membershipData) {
+    return await this.request(`teams/${teamId}/memberships`, membershipData, "put");
+  }
+
+  static async removeUserFromAllTeams(userId) {
+    return await this.request(`teams/users/${userId}/memberships`, {}, "delete");
   }
 }
 

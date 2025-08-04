@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 
-const AccountingPayments = ({ users, userBalances, isDarkMode, handleSubmitPayment, successMessage }) => {
+const AccountingPayments = ({ users, userBalances, isDarkMode, handleSubmitPayment, successMessage, onDataChange }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -48,6 +48,12 @@ const AccountingPayments = ({ users, userBalances, isDarkMode, handleSubmitPayme
         paymentType: 'Check',  // Updated to match the case in database
         paymentDescription: ''
       });
+
+      // Call parent refresh function if provided
+      if (onDataChange) {
+        await onDataChange();
+      }
+
     } catch (err) {
       setError(err.message || 'Error submitting payment');
     }

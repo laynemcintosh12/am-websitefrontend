@@ -6,6 +6,7 @@ const ProfileMenu = ({ isOpen, setIsOpen }) => {
   const { isDarkMode, setIsDarkMode } = useDarkMode();
   const [userName, setUserName] = useState('Loading...');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isManager, setIsManager] = useState(false);
   const [isSyncing, setSyncing] = useState(false);
   const menuRef = useRef(null);
 
@@ -21,12 +22,32 @@ const ProfileMenu = ({ isOpen, setIsOpen }) => {
   }, [setIsOpen]);
 
   useEffect(() => {
-    // Fetch user details from localStorage
-    const userData = JSON.parse(localStorage.getItem('user'));
-    if (userData) {
-      setUserName(userData.user.name); // Set the user's name
-      setIsAdmin(userData.user.permissions === 'Admin'); // Check if the user is an Admin
-    }
+    const checkUserPermissions = async () => {
+      try {
+        // Fetch user details from localStorage
+        const userData = JSON.parse(localStorage.getItem('user'));
+        if (userData) {
+          setUserName(userData.user.name);
+          const userIsAdmin = userData.user.permissions === 'Admin';
+          setIsAdmin(userIsAdmin);
+
+          // Check if user is a manager
+          const userIsManager = userData.user.permissions === 'Sales Manager' || userData.user.permissions === 'Supplement Manager';
+          setIsManager(userIsManager);
+        }
+      } catch (error) {
+        console.error('Error checking user permissions:', error);
+        // Fallback to localStorage data only
+        const userData = JSON.parse(localStorage.getItem('user'));
+        if (userData) {
+          setUserName(userData.user.name);
+          setIsAdmin(userData.user.permissions === 'Admin');
+          setIsManager(userData.user.permissions === 'Sales Manager' || userData.user.permissions === 'Supplement Manager');
+        }
+      }
+    };
+
+    checkUserPermissions();
   }, []);
 
   const handleSignOut = () => {
@@ -73,6 +94,12 @@ const ProfileMenu = ({ isOpen, setIsOpen }) => {
             <i className="fas fa-dollar-sign text-gray-400 w-5"></i>
             <span>Financials</span>
           </a>
+          {(isAdmin || isManager) && (
+            <a href="/team-stats" className={`flex items-center px-4 py-2 text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}>
+              <i className="fas fa-chart-bar text-gray-400 w-5"></i>
+              <span>Team Stats</span>
+            </a>
+          )}
           {isAdmin && (
             <a href="/admin-overview" className={`flex items-center px-4 py-2 text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}>
               <i className="fas fa-tools text-gray-400 w-5"></i>
@@ -89,6 +116,12 @@ const ProfileMenu = ({ isOpen, setIsOpen }) => {
             <a href="/admin-settings" className={`flex items-center px-4 py-2 text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}>
               <i className="fas fa-tools text-gray-400 w-5"></i>
               <span>Admin Settings</span>
+            </a>
+          )}
+          {isAdmin && (
+            <a href="/team-settings" className={`flex items-center px-4 py-2 text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}>
+              <i className="fas fa-users text-gray-400 w-5"></i>
+              <span>Team Settings</span>
             </a>
           )}
           <button

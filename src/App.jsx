@@ -21,18 +21,22 @@ import AdminAccounting from './Pages/AdminAccounting';
 import Financials from './Pages/Financials';
 import { DarkModeProvider } from './contexts/DarkModeContext';
 import ScrollToTop from './Components/Everwhere/ScrollToTop';
-import ProtectedRoute from './Components/Common/ProtectedRoute';
+import ProtectedRoute from './Components/Common/ProtectedRoute'
+import TeamStats from './Pages/TeamStats';
+import TeamSettings from './Pages/TeamSettings';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userPermissions, setUserPermissions] = useState(null);
+  const [isManager, setIsManager] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
       const user = JSON.parse(userData);
       setIsLoggedIn(true);
-      setUserPermissions(user.permissions);
+      setUserPermissions(user.user.permissions);
+      setIsManager(user.user.permissions === 'Sales Manager' || user.user.permissions === 'Supplement Manager');
     }
   }, []);
 
@@ -50,6 +54,15 @@ function App() {
                 <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
                 <Route path="/financials" element={<ProtectedRoute element={<Financials />} />} />
 
+                {/* Team Stats - accessible to both admins and managers */}
+                <Route 
+                  path='/team-stats' 
+                  element={<ProtectedRoute 
+                    element={<TeamStats/>} 
+                    requiredPermission={userPermissions === 'Admin' || isManager ? null : 'Admin'} 
+                  />} 
+                />
+                
                 {/* Admin routes */}
                 <Route 
                   path="/admin-overview" 
@@ -63,6 +76,13 @@ function App() {
                   element={<ProtectedRoute 
                     element={<AdminSettings />} 
                     requiredPermission="Admin" 
+                  />} 
+                />
+                <Route 
+                  path="/team-settings" 
+                  element={<ProtectedRoute 
+                    element={<TeamSettings />} 
+                    requiredPermission={isManager ? null : 'Admin'} 
                   />} 
                 />
                 <Route 

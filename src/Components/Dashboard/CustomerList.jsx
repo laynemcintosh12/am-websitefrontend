@@ -13,14 +13,18 @@ const STATUS_OPTIONS = [
   'Scope Received - Repair',
   'Scope Received - Approved',
   'Supplements Sent',
+  'In Appraisal',
+  'Ready for Contract',
   'Contract Signed',
   'Supplements Finalized',
   'Job Prep',
+  'Waiting on Build',
   'Being Built',
   'Final Walk Through',
-  'Job Complete',
-  'Pending Payment',
-  'Lost',
+  'Job Completed',
+  'Pending Payments',
+  'Lost - Reclaimable',
+  'Lost - Unreclaimable',
   'Finalized'
 ];
 
